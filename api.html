@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API Documentation</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 250px;
+        height: 100%;
+        overflow-y: auto;
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-right: 1px solid #dee2e6;
+      }
+
+      main {
+        margin-left: 270px;
+        padding: 20px;
+      }
+
+      h1 {
+        color: #2c3e50;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+      }
+
+      h2 {
+        color: #34495e;
+        margin-top: 40px;
+      }
+
+      h3 {
+        color: #486581;
+        margin-top: 30px;
+      }
+
+      .http-method {
+        background-color: #e9ecef;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: monospace;
+      }
+
+      .json {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        overflow-x: auto;
+      }
+
+      code {
+        background-color: #f8f9fa;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-family: monospace;
+      }
+
+      .auth-required {
+        color: #dc3545;
+        font-weight: bold;
+      }
+
+      .param {
+        margin-left: 20px;
+      }
+
+      .nav-link {
+        color: #495057;
+        text-decoration: none;
+        display: block;
+        padding: 5px 0;
+      }
+
+      .nav-link:hover {
+        color: #007bff;
+      }
+
+      .error-codes {
+        list-style: none;
+        padding: 0;
+      }
+
+      .error-codes li {
+        margin: 10px 0;
+      }
+
+      .role-list {
+        list-style: none;
+        padding: 0;
+      }
+
+      .role-list li {
+        margin: 5px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <h2>目錄</h2>
+      <a href="#auth" class="nav-link">認證 (Authentication)</a>
+      <a href="#users" class="nav-link">用戶管理 (Users)</a>
+      <a href="#questions" class="nav-link">問題管理 (Questions)</a>
+      <a href="#records" class="nav-link">記錄管理 (Records)</a>
+      <a href="#common" class="nav-link">通用信息</a>
+    </nav>
+
+    <main>
+      <h1>API Documentation</h1>
+
+      <section id="auth">
+        <h2>認證 (Authentication)</h2>
+
+        <h3>登入</h3>
+        <div class="http-method">POST /auth/login</div>
+
+        <h4>請求體 (Request Body)</h4>
+        <pre class="json">
+{
+    "email": "user@example.com",
+    "password": "your-password"
+}</pre
+        >
+
+        <h4>成功響應 (Success Response)</h4>
+        <pre class="json">
+{
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "user": {
+        "uid": "user-id",
+        "email": "user@example.com",
+        "username": "username",
+        "role": "user"
+    }
+}</pre
+        >
+      </section>
+
+      <section id="users">
+        <h2>用戶管理 (Users)</h2>
+
+        <h3>創建用戶</h3>
+        <div class="http-method">POST /users</div>
+
+        <h4>請求體 (Request Body)</h4>
+        <pre class="json">
+{
+    "username": "newuser",
+    "email": "user@example.com",
+    "password": "password123",
+    "role": "user"  // 可選，默認為 "user"
+}</pre
+        >
+
+        <h3>獲取所有用戶</h3>
+        <div class="http-method">GET /users</div>
+        <p class="auth-required">需要認證：是</p>
+        <p class="auth-required">需要權限：admin</p>
+
+        <h3>獲取特定用戶</h3>
+        <div class="http-method">GET /users/:uid</div>
+        <p class="auth-required">需要認證：是</p>
+        <div class="param">
+          <strong>參數：</strong>
+          <code>uid</code> - 用戶 ID
+        </div>
+      </section>
+
+      <section id="questions">
+        <h2>問題管理 (Questions)</h2>
+
+        <h3>創建問題</h3>
+        <div class="http-method">POST /questions</div>
+        <p class="auth-required">需要認證：是</p>
+        <p class="auth-required">需要權限：admin</p>
+
+        <h4>請求體 (Request Body)</h4>
+        <pre class="json">
+{
+    "title": "問題標題",
+    "description": "問題描述",
+    "category": "問題類別",
+    "options": ["選項A", "選項B", "選項C", "選項D"],
+    "answer": "正確答案",
+    "difficulty": "easy"  // easy, medium, hard
+}</pre
+        >
+
+        <h3>獲取隨機問題</h3>
+        <div class="http-method">GET /questions/random</div>
+        <p class="auth-required">需要認證：是</p>
+        <div class="param">
+          <strong>查詢參數：</strong><br />
+          <code>category</code> - (可選) 按類別過濾<br />
+          <code>limit</code> - (可選) 返回問題數量，默認為 1
+        </div>
+      </section>
+
+      <section id="records">
+        <h2>記錄管理 (Records)</h2>
+
+        <h3>創建記錄</h3>
+        <div class="http-method">POST /records</div>
+        <p class="auth-required">需要認證：是</p>
+
+        <h4>請求體 (Request Body)</h4>
+        <pre class="json">
+{
+    "questionId": "問題ID",
+    "answer": "用戶答案",
+    "timeSpent": 30  // 答題時間（秒）
+}</pre
+        >
+
+        <h3>獲取用戶統計</h3>
+        <div class="http-method">GET /records/stats/:userId</div>
+        <p class="auth-required">需要認證：是</p>
+        <div class="param">
+          <strong>參數：</strong>
+          <code>userId</code> - 用戶 ID（只能查看自己的統計，除非是管理員）
+        </div>
+
+        <h4>成功響應 (Success Response)</h4>
+        <pre class="json">
+{
+    "totalAnswered": 100,
+    "correctCount": 75,
+    "accuracy": 0.75,
+    "averageTime": 25.5,
+    "byCategory": {
+        "category1": {
+            "answered": 50,
+            "correct": 40,
+            "accuracy": 0.8
+        }
+    }
+}</pre
+        >
+      </section>
+
+      <section id="common">
+        <h2>通用信息</h2>
+
+        <h3>認證</h3>
+        <p>所有需要認證的請求都需要在 Header 中包含 JWT token：</p>
+        <pre class="json">Authorization: Bearer eyJhbGciOiJIUzI1NiIs...</pre>
+
+        <h3>錯誤響應</h3>
+        <pre class="json">
+{
+    "statusCode": 400/401/403/404,
+    "message": "Error message",
+    "error": "Error type"
+}</pre
+        >
+
+        <h4>常見錯誤碼：</h4>
+        <ul class="error-codes">
+          <li><strong>400:</strong> Bad Request (請求格式錯誤)</li>
+          <li><strong>401:</strong> Unauthorized (未認證)</li>
+          <li><strong>403:</strong> Forbidden (無權限)</li>
+          <li><strong>404:</strong> Not Found (資源不存在)</li>
+        </ul>
+
+        <h3>角色權限</h3>
+        <p>系統中有兩種角色：</p>
+        <ul class="role-list">
+          <li><code>user</code>: 普通用戶</li>
+          <li><code>admin</code>: 管理員</li>
+        </ul>
+
+        <h4>管理員可以：</h4>
+        <ul class="role-list">
+          <li>查看所有用戶信息</li>
+          <li>創建/更新/刪除任何用戶</li>
+          <li>更改用戶角色</li>
+          <li>管理問題庫</li>
+          <li>查看所有用戶的記錄</li>
+        </ul>
+
+        <h4>普通用戶可以：</h4>
+        <ul class="role-list">
+          <li>查看自己的用戶信息</li>
+          <li>更新自己的基本信息（除了角色）</li>
+          <li>查看和回答問題</li>
+          <li>查看自己的答題記錄和統計</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>
