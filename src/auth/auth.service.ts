@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import * as admin from 'firebase-admin';
+import { AuthResponse, VerifyResponse } from './interfaces/auth.interface';
 
 @Injectable()
 export class AuthService {
@@ -22,11 +23,11 @@ export class AuthService {
       return this.usersService.findOne(userCredential.uid);
     } catch (error) {
       console.error('Validate user error:', error);
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Invalid credentials');
     }
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto): Promise<AuthResponse> {
     try {
       console.log('Login attempt for email:', loginDto.email);
 
@@ -80,6 +81,34 @@ export class AuthService {
       }
 
       throw new UnauthorizedException('Invalid credentials');
+    }
+  }
+
+  async verifyToken(user: any): Promise<VerifyResponse> {
+    try {
+      if (!user || !user.userId) {
+        throw new UnauthorizedException('Invalid token format');
+      }
+
+      // 獲取最新的用戶數據
+      const currentUser = await this.usersService.findOne(user.userId);
+
+      if (!currentUser) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      return {
+        verified: true,
+        user: {
+          uid: user.userId,
+          email: user.email,
+          username: currentUser.username,
+          role: currentUser.role || 'user',
+        },
+      };
+    } catch (error) {
+      console.error('Token verification error:', error);
+      throw new UnauthorizedException('Invalid token');
     }
   }
 }

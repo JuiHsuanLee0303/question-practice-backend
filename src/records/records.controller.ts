@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
@@ -22,54 +23,116 @@ export class RecordsController {
   constructor(private readonly recordsService: RecordsService) {}
 
   @Post()
-  create(@Body() createRecordDto: CreateRecordDto, @Request() req) {
-    createRecordDto.userId = req.user.uid;
-    return this.recordsService.create(createRecordDto);
+  async create(@Body() createRecordDto: CreateRecordDto, @Request() req) {
+    try {
+      console.log('User from request:', req.user);
+
+      if (!req.user || !req.user.userId) {
+        throw new UnauthorizedException('User not authenticated properly');
+      }
+
+      createRecordDto.userId = req.user.userId;
+      console.log('Create record DTO:', createRecordDto);
+
+      return await this.recordsService.create(createRecordDto);
+    } catch (error) {
+      console.error('Error in create record controller:', error);
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to create record');
+    }
   }
 
   @Get()
   @Roles('admin')
-  findAll() {
+  async findAll() {
     return this.recordsService.findAll();
-  }
-
-  @Get(':id')
-  async findOne(@Param('id') id: string, @Request() req) {
-    const record = await this.recordsService.findOne(id);
-    if (req.user.role !== 'admin' && record.userId !== req.user.uid) {
-      throw new UnauthorizedException();
-    }
-    return record;
   }
 
   @Get('user/:userId')
   async findByUser(@Param('userId') userId: string, @Request() req) {
-    if (req.user.role !== 'admin' && userId !== req.user.uid) {
-      throw new UnauthorizedException();
+    try {
+      if (!req.user) {
+        throw new UnauthorizedException('User not authenticated');
+      }
+
+      if (req.user.role !== 'admin' && userId !== req.user.userId) {
+        throw new UnauthorizedException(
+          'Not authorized to access these records',
+        );
+      }
+
+      return await this.recordsService.findByUser(userId);
+    } catch (error) {
+      console.error('Error in findByUser:', error);
+      throw error;
     }
-    return this.recordsService.findByUser(userId);
   }
 
   @Get('stats/:userId')
   async getStatsByUser(@Param('userId') userId: string, @Request() req) {
-    if (req.user.role !== 'admin' && userId !== req.user.uid) {
-      throw new UnauthorizedException();
+    try {
+      if (!req.user) {
+        throw new UnauthorizedException('User not authenticated');
+      }
+
+      if (req.user.role !== 'admin' && userId !== req.user.userId) {
+        throw new UnauthorizedException('Not authorized to access these stats');
+      }
+
+      return await this.recordsService.getStatsByUser(userId);
+    } catch (error) {
+      console.error('Error in getStatsByUser:', error);
+      throw error;
     }
-    return this.recordsService.getStatsByUser(userId);
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string, @Request() req) {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedException('User not authenticated');
+      }
+
+      const record = await this.recordsService.findOne(id);
+
+      if (req.user.role !== 'admin' && record.userId !== req.user.userId) {
+        throw new UnauthorizedException('Not authorized to access this record');
+      }
+
+      return record;
+    } catch (error) {
+      console.error('Error in findOne:', error);
+      throw error;
+    }
   }
 
   @Patch(':id')
   @Roles('admin')
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateRecordDto: Partial<CreateRecordDto>,
   ) {
-    return this.recordsService.update(id, updateRecordDto);
+    try {
+      return await this.recordsService.update(id, updateRecordDto);
+    } catch (error) {
+      console.error('Error in update:', error);
+      throw error;
+    }
   }
 
   @Delete(':id')
   @Roles('admin')
-  remove(@Param('id') id: string) {
-    return this.recordsService.remove(id);
+  async remove(@Param('id') id: string) {
+    try {
+      return await this.recordsService.remove(id);
+    } catch (error) {
+      console.error('Error in remove:', error);
+      throw error;
+    }
   }
 }
