@@ -1,30 +1,32 @@
-import { IsString, IsArray, IsNumber, IsOptional } from 'class-validator';
+import { IsString, IsArray, IsBoolean, IsOptional } from 'class-validator';
 
 export class CreateQuestionDto {
   @IsString()
-  title: string;
+  examId: string;
 
   @IsString()
-  description: string;
+  examName: string;
+
+  @IsString()
+  @IsOptional()
+  chapterNum?: string;
+
+  @IsString()
+  @IsOptional()
+  chapterName?: string;
+
+  @IsString()
+  questionNum: string;
+
+  @IsString()
+  content: string;
 
   @IsArray()
   options: string[];
 
-  @IsArray()
-  correctOptions: string[];
-
-  @IsString()
-  category: string;
-
-  @IsNumber()
-  @IsOptional()
-  difficulty?: number;
-
-  @IsString()
-  @IsOptional()
-  explanation?: string;
+  @IsBoolean()
+  isMultiple: boolean;
 
   @IsArray()
-  @IsOptional()
-  tags?: string[];
+  answer: string[];
 }

@@ -31,17 +31,32 @@ export class QuestionsController {
     return this.questionsService.findAll();
   }
 
-  @Get('random')
-  findRandom(
-    @Query('category') category?: string,
-    @Query('limit') limit?: number,
-  ) {
-    return this.questionsService.findRandom(category, limit);
+  @Get('exams')
+  findAllExams() {
+    return this.questionsService.findAllExams();
   }
 
-  @Get('category/:category')
-  findByCategory(@Param('category') category: string) {
-    return this.questionsService.findByCategory(category);
+  @Get('exams/:examId')
+  findQuestionsByExam(@Param('examId') examId: string) {
+    return this.questionsService.findByExam(examId);
+  }
+
+  @Get('random')
+  findRandom(@Query('examId') examId?: string, @Query('limit') limit?: number) {
+    return this.questionsService.findRandom(examId, limit);
+  }
+
+  @Get('exam/:examId')
+  findByExam(@Param('examId') examId: string) {
+    return this.questionsService.findByExam(examId);
+  }
+
+  @Get('exam/:examId/chapter/:chapterNum')
+  findByChapter(
+    @Param('examId') examId: string,
+    @Param('chapterNum') chapterNum: string,
+  ) {
+    return this.questionsService.findByChapter(examId, chapterNum);
   }
 
   @Get(':id')

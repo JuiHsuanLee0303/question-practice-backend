@@ -26,7 +26,32 @@ export class QuestionsService {
 
   async findAll() {
     const snapshot = await this.questionsRef.once('value');
-    return snapshot.val();
+    const questions = snapshot.val() || {};
+    return Object.entries(questions).map(([id, data]) => ({
+      id,
+      ...(data as object),
+    }));
+  }
+
+  async findAllExams() {
+    const snapshot = await this.questionsRef.once('value');
+    const questions = snapshot.val() || {};
+    const exams = new Map();
+
+    Object.values(questions).forEach((question: any) => {
+      if (!exams.has(question.examId)) {
+        exams.set(question.examId, {
+          examId: question.examId,
+          examName: question.examName,
+          questionCount: 1,
+        });
+      } else {
+        const exam = exams.get(question.examId);
+        exam.questionCount++;
+      }
+    });
+
+    return Array.from(exams.values());
   }
 
   async findOne(id: string) {
@@ -58,20 +83,37 @@ export class QuestionsService {
     }
   }
 
-  async findByCategory(category: string) {
+  async findByExam(examId: string) {
     const snapshot = await this.questionsRef
-      .orderByChild('category')
-      .equalTo(category)
+      .orderByChild('examId')
+      .equalTo(examId)
       .once('value');
-    return snapshot.val();
+    const questions = snapshot.val() || {};
+    return Object.entries(questions).map(([id, data]) => ({
+      id,
+      ...(data as object),
+    }));
   }
 
-  async findRandom(category?: string, limit: number = 1) {
+  async findByChapter(examId: string, chapterNum: string) {
+    const snapshot = await this.questionsRef
+      .orderByChild('examId')
+      .equalTo(examId)
+      .once('value');
+    const questions = snapshot.val() || {};
+    return Object.entries(questions)
+      .filter(
+        ([, question]: [string, any]) => question.chapterNum === chapterNum,
+      )
+      .reduce((acc, [id, data]) => ({ ...acc, [id]: data }), {});
+  }
+
+  async findRandom(examId?: string, limit: number = 1) {
     let snapshot: admin.database.DataSnapshot;
-    if (category) {
+    if (examId) {
       snapshot = await this.questionsRef
-        .orderByChild('category')
-        .equalTo(category)
+        .orderByChild('examId')
+        .equalTo(examId)
         .once('value');
     } else {
       snapshot = await this.questionsRef.once('value');
