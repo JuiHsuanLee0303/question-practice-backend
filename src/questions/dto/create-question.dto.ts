@@ -29,4 +29,8 @@ export class CreateQuestionDto {
 
   @IsArray()
   answer: string[];
+
+  @IsArray()
+  @IsOptional()
+  questions?: CreateQuestionDto[];
 }
