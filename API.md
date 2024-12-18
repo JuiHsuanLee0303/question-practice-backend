@@ -38,6 +38,27 @@ POST /auth/login
 }
 ```
 
+### 驗證令牌
+
+```http
+GET /auth/verify
+```
+
+**需要認證：** 是
+
+**成功響應 (Success Response)**
+
+```json
+{
+  "isValid": true,
+  "user": {
+    "uid": "user-id",
+    "email": "user@example.com",
+    "role": "user"
+  }
+}
+```
+
 ## 用戶管理 (Users)
 
 ### 創建用戶
@@ -64,8 +85,7 @@ POST /users
   "uid": "generated-uid",
   "username": "newuser",
   "email": "user@example.com",
-  "role": "user",
-  "createdAt": 1639651200000
+  "role": "user"
 }
 ```
 
@@ -82,16 +102,20 @@ GET /users
 
 ```json
 {
-  "user-id-1": {
-    "username": "user1",
-    "email": "user1@example.com",
-    "role": "user"
-  },
-  "user-id-2": {
-    "username": "user2",
-    "email": "user2@example.com",
-    "role": "admin"
-  }
+  "users": [
+    {
+      "uid": "user-id-1",
+      "username": "user1",
+      "email": "user1@example.com",
+      "role": "user"
+    },
+    {
+      "uid": "user-id-2",
+      "username": "user2",
+      "email": "user2@example.com",
+      "role": "admin"
+    }
+  ]
 }
 ```
 
@@ -111,10 +135,10 @@ GET /users/:uid
 
 ```json
 {
+  "uid": "user-id",
   "username": "username",
   "email": "user@example.com",
-  "role": "user",
-  "createdAt": 1639651200000
+  "role": "user"
 }
 ```
 
@@ -155,14 +179,6 @@ DELETE /users/:uid
 
 - `uid`: 用戶 ID
 
-**成功響應 (Success Response)**
-
-```json
-{
-  "message": "User deleted successfully"
-}
-```
-
 ## 問題管理 (Questions)
 
 ### 創建問題
@@ -180,10 +196,10 @@ POST /questions
 {
   "title": "問題標題",
   "description": "問題描述",
-  "category": "問題類別",
+  "examId": "考試ID",
+  "chapterNum": "章節編號",
   "options": ["選項A", "選項B", "選項C", "選項D"],
-  "answer": "正確答案",
-  "difficulty": "easy" // easy, medium, hard
+  "answer": "正確答案"
 }
 ```
 
@@ -195,10 +211,25 @@ GET /questions
 
 **需要認證：** 是
 
-**查詢參數**
+### 獲取所有考試
 
-- `category` (可選): 按類別過濾
-- `difficulty` (可選): 按難度過濾
+```http
+GET /questions/exams
+```
+
+**需要認證：** 是
+
+### 獲取考試的所有問題
+
+```http
+GET /questions/exams/:examId
+```
+
+**需要認證：** 是
+
+**參數**
+
+- `examId`: 考試 ID
 
 ### 獲取隨機問題
 
@@ -210,8 +241,33 @@ GET /questions/random
 
 **查詢參數**
 
-- `category` (可選): 按類別過濾
-- `limit` (可選): 返回問題數量，默認為 1
+- `examId` (可選): 考試 ID
+- `limit` (可選): 返回問題數量
+
+### 獲取特定考試的問題
+
+```http
+GET /questions/exam/:examId
+```
+
+**需要認證：** 是
+
+**參數**
+
+- `examId`: 考試 ID
+
+### 獲取特定考試章節的問題
+
+```http
+GET /questions/exam/:examId/chapter/:chapterNum
+```
+
+**需要認證：** 是
+
+**參數**
+
+- `examId`: 考試 ID
+- `chapterNum`: 章節編號
 
 ### 獲取特定問題
 
@@ -237,6 +293,19 @@ PATCH /questions/:id
 **參數**
 
 - `id`: 問題 ID
+
+**請求體 (Request Body)**
+
+```json
+{
+  "title": "新問題標題", // 可選
+  "description": "新問題描述", // 可選
+  "examId": "新考試ID", // 可選
+  "chapterNum": "新章節編號", // 可選
+  "options": ["新選項A", "新選項B", "新選項C", "新選項D"], // 可選
+  "answer": "新正確答案" // 可選
+}
+```
 
 ### 刪除問題
 
@@ -312,8 +381,8 @@ GET /records/stats/:userId
   "correctCount": 75,
   "accuracy": 0.75,
   "averageTime": 25.5,
-  "byCategory": {
-    "category1": {
+  "byExam": {
+    "exam1": {
       "answered": 50,
       "correct": 40,
       "accuracy": 0.8
@@ -322,51 +391,74 @@ GET /records/stats/:userId
 }
 ```
 
-## 通用信息
-
-### 認證
-
-所有需要認證的請求都需要在 Header 中包含 JWT token：
+### 獲取特定記錄
 
 ```http
-Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+GET /records/:id
 ```
+
+**需要認證：** 是
+
+**參數**
+
+- `id`: 記錄 ID（只能查看自己的記錄，除非是管理員）
+
+### 更新記錄
+
+```http
+PATCH /records/:id
+```
+
+**需要認證：** 是
+**需要權限：** admin
+
+**參數**
+
+- `id`: 記錄 ID
+
+**請求體 (Request Body)**
+
+```json
+{
+  "answer": "新答案", // 可選
+  "timeSpent": 40 // 可選
+}
+```
+
+### 刪除記錄
+
+```http
+DELETE /records/:id
+```
+
+**需要認證：** 是
+**需要權限：** admin
+
+**參數**
+
+- `id`: 記錄 ID
+
+## 通用信息
 
 ### 錯誤響應
 
 ```json
 {
-  "statusCode": 400/401/403/404,
-  "message": "Error message",
-  "error": "Error type"
+  "statusCode": 400/401/403/404/500,
+  "message": "錯誤信息",
+  "error": "錯誤類型"
 }
 ```
 
-常見錯誤碼：
+### 認證
 
-- 400: Bad Request (請求格式錯誤)
-- 401: Unauthorized (未認證)
-- 403: Forbidden (無權限)
-- 404: Not Found (資源不存在)
+除了登入和註冊端點外，所有請求都需要在 Header 中包含 Bearer Token：
 
-### 角色權限
+```
+Authorization: Bearer your-jwt-token
+```
 
-系統中有兩種角色：
+### 權限
 
-- `user`: 普通用戶
-- `admin`: 管理員
-
-管理員可以：
-
-- 查看所有用戶信息
-- 創建/更新/刪除任何用戶
-- 更改用戶角色
-- 管理問題庫
-- 查看所有用戶的記錄
-
-普通用戶可以：
-
-- 查看自己的用戶信息
-- 更新自己的基本信息（除了角色）
-- 查看和回答問題
-- 查看自己的答題記錄和統計
+- **user**: 基本用戶權限
+- **admin**: 管理員權限
