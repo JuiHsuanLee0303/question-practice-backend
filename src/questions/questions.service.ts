@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { FirebaseService } from '../config/firebase.config';
 import { CreateQuestionDto } from './dto/create-question.dto';
+import { Chapter } from './interfaces/chapter.interface';
 import * as admin from 'firebase-admin';
 
 @Injectable()
@@ -72,6 +73,131 @@ export class QuestionsService {
     });
 
     return Array.from(exams.values());
+  }
+
+  async getQuestionBanks() {
+    const snapshot = await this.questionsRef.once('value');
+    const questions = snapshot.val() || {};
+    const exams = new Map();
+
+    Object.values(questions).forEach((data: any) => {
+      const question = data.question;
+      if (!exams.has(question.examId)) {
+        exams.set(question.examId, {
+          examId: question.examId,
+          examName: question.examName,
+          questionCount: 1,
+          chapters: new Map(),
+          multipleChoiceCount: question.isMultiple ? 1 : 0,
+          singleChoiceCount: question.isMultiple ? 0 : 1,
+        });
+        if (question.chapterNum && question.chapterName) {
+          exams.get(question.examId).chapters.set(question.chapterNum, {
+            chapterNum: question.chapterNum,
+            chapterName: question.chapterName,
+            questionCount: 1,
+            multipleChoiceCount: question.isMultiple ? 1 : 0,
+            singleChoiceCount: question.isMultiple ? 0 : 1,
+          });
+        }
+      } else {
+        const exam = exams.get(question.examId);
+        exam.questionCount++;
+        if (question.isMultiple) {
+          exam.multipleChoiceCount++;
+        } else {
+          exam.singleChoiceCount++;
+        }
+
+        if (question.chapterNum && question.chapterName) {
+          if (!exam.chapters.has(question.chapterNum)) {
+            exam.chapters.set(question.chapterNum, {
+              chapterNum: question.chapterNum,
+              chapterName: question.chapterName,
+              questionCount: 1,
+              multipleChoiceCount: question.isMultiple ? 1 : 0,
+              singleChoiceCount: question.isMultiple ? 0 : 1,
+            });
+          } else {
+            const chapter = exam.chapters.get(question.chapterNum);
+            chapter.questionCount++;
+            if (question.isMultiple) {
+              chapter.multipleChoiceCount++;
+            } else {
+              chapter.singleChoiceCount++;
+            }
+          }
+        }
+      }
+    });
+
+    const result = Array.from(exams.values()).map((exam) => ({
+      ...exam,
+      chapters: Array.from(exam.chapters.values()).sort((a, b) =>
+        (a as Chapter).chapterNum.localeCompare(
+          (b as Chapter).chapterNum,
+          undefined,
+          { numeric: true },
+        ),
+      ),
+    }));
+
+    return result;
+  }
+
+  async getExamChapters(examId: string) {
+    const snapshot = await this.questionsRef
+      .orderByChild('question/examId')
+      .equalTo(examId)
+      .once('value');
+    const questions = snapshot.val() || {};
+    console.log('Getting chapters for exam:', examId);
+
+    const chapters = new Map<string, Chapter>();
+    const DEFAULT_CHAPTER = 'other';
+
+    Object.values(questions).forEach((data: any) => {
+      console.log('Processing question:', data);
+      const question = data.question;
+      let targetChapterNum = DEFAULT_CHAPTER;
+      let targetChapterName = '其他';
+
+      if (question.chapterNum) {
+        targetChapterNum = question.chapterNum;
+        targetChapterName =
+          question.chapterName || `第${question.chapterNum}章`;
+      }
+
+      if (!chapters.has(targetChapterNum)) {
+        console.log('Adding new chapter:', targetChapterNum);
+        chapters.set(targetChapterNum, {
+          chapterNum: targetChapterNum,
+          chapterName: targetChapterName,
+          questionCount: 1,
+          multipleChoiceCount: question.isMultiple ? 1 : 0,
+          singleChoiceCount: question.isMultiple ? 0 : 1,
+        });
+      } else {
+        const chapter = chapters.get(targetChapterNum);
+        chapter.questionCount++;
+        if (question.isMultiple) {
+          chapter.multipleChoiceCount++;
+        } else {
+          chapter.singleChoiceCount++;
+        }
+      }
+    });
+
+    const result = Array.from(chapters.values()).sort((a, b) => {
+      if (a.chapterNum === 'other') return 1;
+      if (b.chapterNum === 'other') return -1;
+      return a.chapterNum.localeCompare(b.chapterNum, undefined, {
+        numeric: true,
+      });
+    });
+
+    console.log('Chapters result:', JSON.stringify(result, null, 2));
+    return result;
   }
 
   async findOne(id: string) {

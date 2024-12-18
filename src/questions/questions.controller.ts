@@ -36,6 +36,16 @@ export class QuestionsController {
     return this.questionsService.findAllExams();
   }
 
+  @Get('question-banks')
+  getQuestionBanks() {
+    return this.questionsService.getQuestionBanks();
+  }
+
+  @Get('question-banks/:examId/chapters')
+  getExamChapters(@Param('examId') examId: string) {
+    return this.questionsService.getExamChapters(examId);
+  }
+
   @Get('exams/:examId')
   findQuestionsByExam(@Param('examId') examId: string) {
     return this.questionsService.findByExam(examId);
