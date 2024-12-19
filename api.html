@@ -1,401 +1,236 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-TW">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API Documentation</title>
     <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-          'Helvetica Neue', Arial, sans-serif;
-        line-height: 1.6;
-        color: #333;
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-      }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
 
-      nav {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 250px;
-        height: 100%;
-        overflow-y: auto;
-        padding: 20px;
-        background-color: #f8f9fa;
-        border-right: 1px solid #dee2e6;
-      }
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 100%;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+        }
 
-      main {
-        margin-left: 270px;
-        padding: 20px;
-      }
+        main {
+            margin-left: 270px;
+            padding: 20px;
+        }
 
-      h1 {
-        color: #2c3e50;
-        border-bottom: 2px solid #eee;
-        padding-bottom: 10px;
-      }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 40px; }
+        h3 { color: #486581; margin-top: 30px; }
 
-      h2 {
-        color: #34495e;
-        margin-top: 40px;
-      }
+        .http-method {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
 
-      h3 {
-        color: #486581;
-        margin-top: 30px;
-      }
+        .json {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
 
-      .http-method {
-        background-color: #e9ecef;
-        padding: 10px;
-        border-radius: 4px;
-        font-family: monospace;
-      }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
 
-      .json {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 4px;
-        overflow-x: auto;
-      }
+        .auth-required {
+            color: #dc3545;
+            font-weight: bold;
+        }
 
-      code {
-        background-color: #f8f9fa;
-        padding: 2px 4px;
-        border-radius: 4px;
-        font-family: monospace;
-      }
+        .nav-link {
+            color: #495057;
+            text-decoration: none;
+            display: block;
+            padding: 5px 0;
+        }
 
-      .auth-required {
-        color: #dc3545;
-        font-weight: bold;
-      }
-
-      .param {
-        margin-left: 20px;
-      }
-
-      .nav-link {
-        color: #495057;
-        text-decoration: none;
-        display: block;
-        padding: 5px 0;
-      }
-
-      .nav-link:hover {
-        color: #007bff;
-      }
-
-      .error-codes {
-        list-style: none;
-        padding: 0;
-      }
-
-      .error-codes li {
-        margin: 10px 0;
-      }
-
-      .role-list {
-        list-style: none;
-        padding: 0;
-      }
-
-      .role-list li {
-        margin: 5px 0;
-      }
+        .nav-link:hover {
+            color: #007bff;
+        }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <nav>
-      <h2>目錄</h2>
-      <a href="#auth" class="nav-link">認證 (Authentication)</a>
-      <a href="#users" class="nav-link">用戶管理 (Users)</a>
-      <a href="#questions" class="nav-link">問題管理 (Questions)</a>
-      <a href="#records" class="nav-link">記錄管理 (Records)</a>
-      <a href="#common" class="nav-link">通用信息</a>
+        <h2>目錄</h2>
+        <a href="#exams" class="nav-link">考試管理 (Exams)</a>
+        <a href="#questions" class="nav-link">題目管理 (Questions)</a>
+        <a href="#auth" class="nav-link">認證與授權</a>
     </nav>
 
     <main>
-      <h1>API Documentation</h1>
+        <h1>API Documentation</h1>
 
-      <section id="auth">
-        <h2>認證 (Authentication)</h2>
+        <section id="exams">
+            <h2>考試管理 (Exams)</h2>
 
-        <h3>登入</h3>
-        <div class="http-method">POST /auth/login</div>
-        <h4>請求體 (Request Body)</h4>
-        <pre class="json">
+            <h3>獲取所有考試</h3>
+            <div class="http-method">GET /exams</div>
+            <p>查詢參數：</p>
+            <ul>
+                <li><code>includeQuestions</code> (boolean, 可選) - 是否包含題目資訊</li>
+            </ul>
+
+            <h3>獲取特定考試</h3>
+            <div class="http-method">GET /exams/{id}</div>
+            <pre class="json">
 {
-    "email": "user@example.com",
-    "password": "your-password"
-}</pre>
-
-        <h4>成功響應 (Success Response)</h4>
-        <pre class="json">
-{
-    "access_token": "eyJhbGciOiJIUzI1NiIs...",
-    "user": {
-        "uid": "user-id",
-        "email": "user@example.com",
-        "username": "username",
-        "role": "user"
-    }
-}</pre>
-
-        <h3>驗證令牌</h3>
-        <div class="http-method">GET /auth/verify</div>
-        <p class="auth-required">需要認證：是</p>
-        <h4>成功響應 (Success Response)</h4>
-        <pre class="json">
-{
-    "isValid": true,
-    "user": {
-        "uid": "user-id",
-        "email": "user@example.com",
-        "role": "user"
-    }
-}</pre>
-      </section>
-
-      <section id="users">
-        <h2>用戶管理 (Users)</h2>
-
-        <h3>創建用戶</h3>
-        <div class="http-method">POST /users</div>
-        <h4>請求體 (Request Body)</h4>
-        <pre class="json">
-{
-    "username": "newuser",
-    "email": "user@example.com",
-    "password": "password123",
-    "role": "user"  // 可選，默認為 "user"
-}</pre>
-
-        <h3>獲取所有用戶</h3>
-        <div class="http-method">GET /users</div>
-        <p class="auth-required">需要認證：是</p>
-        <p class="auth-required">需要權限：admin</p>
-
-        <h3>獲取特定用戶</h3>
-        <div class="http-method">GET /users/:uid</div>
-        <p class="auth-required">需要認證：是</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>uid</code> - 用戶 ID
-        </div>
-
-        <h3>更新用戶</h3>
-        <div class="http-method">PATCH /users/:uid</div>
-        <p class="auth-required">需要認證：是</p>
-        <p class="auth-required">需要權限：admin</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>uid</code> - 用戶 ID
-        </div>
-
-        <h3>刪除用戶</h3>
-        <div class="http-method">DELETE /users/:uid</div>
-        <p class="auth-required">需要認證：是</p>
-        <p class="auth-required">需要權限：admin</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>uid</code> - 用戶 ID
-        </div>
-      </section>
-
-      <section id="questions">
-        <h2>問題管理 (Questions)</h2>
-
-        <h3>創建問題</h3>
-        <div class="http-method">POST /questions</div>
-        <p class="auth-required">需要認證：是</p>
-        <p class="auth-required">需要權限：admin</p>
-
-        <h4>請求體 (Request Body)</h4>
-        <pre class="json">
-{
-    "title": "問題標題",
-    "description": "問題描述",
-    "examId": "考試ID",
-    "chapterNum": "章節編號",
-    "options": ["選項A", "選項B", "選項C", "選項D"],
-    "answer": "正確答案"
-}</pre>
-
-        <h3>獲取所有問題</h3>
-        <div class="http-method">GET /questions</div>
-        <p class="auth-required">需要認證：是</p>
-
-        <h3>獲取所有考試</h3>
-        <div class="http-method">GET /questions/exams</div>
-        <p class="auth-required">需要認證：是</p>
-
-        <h3>獲取考試的所有問題</h3>
-        <div class="http-method">GET /questions/exams/:examId</div>
-        <p class="auth-required">需要認證：是</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>examId</code> - 考試 ID
-        </div>
-
-        <h3>獲取隨機問題</h3>
-        <div class="http-method">GET /questions/random</div>
-        <p class="auth-required">需要認證：是</p>
-        <div class="param">
-          <strong>查詢參數：</strong><br />
-          <code>examId</code> - (可選) 考試 ID<br />
-          <code>limit</code> - (可選) 返回問題數量
-        </div>
-
-        <h3>獲取特定考試的問題</h3>
-        <div class="http-method">GET /questions/exam/:examId</div>
-        <p class="auth-required">需要認證：是</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>examId</code> - 考試 ID
-        </div>
-
-        <h3>獲取特定考試章節的問題</h3>
-        <div class="http-method">GET /questions/exam/:examId/chapter/:chapterNum</div>
-        <p class="auth-required">需要認證：是</p>
-        <div class="param">
-          <strong>參數：</strong><br />
-          <code>examId</code> - 考試 ID<br />
-          <code>chapterNum</code> - 章節編號
-        </div>
-
-        <h3>獲取特定問題</h3>
-        <div class="http-method">GET /questions/:id</div>
-        <p class="auth-required">需要認證：是</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>id</code> - 問題 ID
-        </div>
-
-        <h3>更新問題</h3>
-        <div class="http-method">PATCH /questions/:id</div>
-        <p class="auth-required">需要認證：是</p>
-        <p class="auth-required">需要權限：admin</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>id</code> - 問題 ID
-        </div>
-
-        <h3>刪除問題</h3>
-        <div class="http-method">DELETE /questions/:id</div>
-        <p class="auth-required">需要認證：是</p>
-        <p class="auth-required">需要權限：admin</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>id</code> - 問題 ID
-        </div>
-      </section>
-
-      <section id="records">
-        <h2>記錄管理 (Records)</h2>
-
-        <h3>創建記錄</h3>
-        <div class="http-method">POST /records</div>
-        <p class="auth-required">需要認證：是</p>
-
-        <h4>請求體 (Request Body)</h4>
-        <pre class="json">
-{
-    "questionId": "問題ID",
-    "answer": "用戶答案",
-    "timeSpent": 30  // 答題時間（秒）
-}</pre>
-
-        <h3>獲取所有記錄</h3>
-        <div class="http-method">GET /records</div>
-        <p class="auth-required">需要認證：是</p>
-        <p class="auth-required">需要權限：admin</p>
-
-        <h3>獲取用戶記錄</h3>
-        <div class="http-method">GET /records/user/:userId</div>
-        <p class="auth-required">需要認證：是</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>userId</code> - 用戶 ID（只能查看自己的記錄，除非是管理員）
-        </div>
-
-        <h3>獲取用戶統計</h3>
-        <div class="http-method">GET /records/stats/:userId</div>
-        <p class="auth-required">需要認證：是</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>userId</code> - 用戶 ID（只能查看自己的統計，除非是管理員）
-        </div>
-
-        <h4>成功響應 (Success Response)</h4>
-        <pre class="json">
-{
-    "totalAnswered": 100,
-    "correctCount": 75,
-    "accuracy": 0.75,
-    "averageTime": 25.5,
-    "byExam": {
-        "exam1": {
-            "answered": 50,
-            "correct": 40,
-            "accuracy": 0.8
+    "id": "string",
+    "code": "string",
+    "name": "string",
+    "description": "string",
+    "category": "string",
+    "questions": [
+        {
+            "id": "string",
+            "questionNum": "string",
+            "content": "string",
+            "options": ["string"],
+            "type": "multiple-choice | true-false | short-answer | essay",
+            "answer": ["string"]
         }
-    }
+    ]
 }</pre>
 
-        <h3>獲取特定記錄</h3>
-        <div class="http-method">GET /records/:id</div>
-        <p class="auth-required">需要認證：是</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>id</code> - 記錄 ID（只能查看自己的記錄，除非是管理員）
-        </div>
-
-        <h3>更新記錄</h3>
-        <div class="http-method">PATCH /records/:id</div>
-        <p class="auth-required">需要認證：是</p>
-        <p class="auth-required">需要權限：admin</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>id</code> - 記錄 ID
-        </div>
-
-        <h3>刪除記錄</h3>
-        <div class="http-method">DELETE /records/:id</div>
-        <p class="auth-required">需要認證：是</p>
-        <p class="auth-required">需要權限：admin</p>
-        <div class="param">
-          <strong>參數：</strong>
-          <code>id</code> - 記錄 ID
-        </div>
-      </section>
-
-      <section id="common">
-        <h2>通用信息</h2>
-
-        <h3>錯誤響應</h3>
-        <pre class="json">
+            <h3>創建考試</h3>
+            <div class="http-method">POST /exams</div>
+            <pre class="json">
 {
-    "statusCode": 400/401/403/404/500,
-    "message": "錯誤信息",
-    "error": "錯誤類型"
+    "code": "string",
+    "name": "string",
+    "description": "string",
+    "category": "string"
 }</pre>
 
-        <h3>認證</h3>
-        <p>
-          除了登入和註冊端點外，所有請求都需要在 Header 中包含 Bearer Token：
-        </p>
-        <pre>Authorization: Bearer your-jwt-token</pre>
+            <h3>更新考試</h3>
+            <div class="http-method">PUT /exams/{id}</div>
+            <pre class="json">
+{
+    "code": "string",
+    "name": "string",
+    "description": "string",
+    "category": "string"
+}</pre>
 
-        <h3>權限</h3>
-        <ul class="role-list">
-          <li><strong>user</strong>: 基本用戶權限</li>
-          <li><strong>admin</strong>: 管理員權限</li>
-        </ul>
-      </section>
+            <h3>刪除考試</h3>
+            <div class="http-method">DELETE /exams/{id}</div>
+
+            <h3>新增題目到考試</h3>
+            <div class="http-method">POST /exams/{examId}/questions</div>
+            <pre class="json">
+{
+    "questionNum": "string",
+    "content": "string",
+    "options": ["string"],
+    "type": "multiple-choice | true-false | short-answer | essay",
+    "answer": ["string"]
+}</pre>
+
+            <h3>批量新增題目</h3>
+            <div class="http-method">POST /exams/{examId}/questions/bulk</div>
+            <pre class="json">
+{
+    "questions": [
+        {
+            "questionNum": "string",
+            "content": "string",
+            "options": ["string"],
+            "type": "multiple-choice | true-false | short-answer | essay",
+            "answer": ["string"]
+        }
+    ]
+}</pre>
+        </section>
+
+        <section id="questions">
+            <h2>題目管理 (Questions)</h2>
+
+            <h3>獲取所有題目</h3>
+            <div class="http-method">GET /questions</div>
+
+            <h3>獲取題目庫</h3>
+            <div class="http-method">GET /questions/question-banks</div>
+
+            <h3>獲取考試章節</h3>
+            <div class="http-method">GET /questions/question-banks/{examId}/chapters</div>
+
+            <h3>獲取考試題目</h3>
+            <div class="http-method">GET /questions/exam/{examId}</div>
+
+            <h3>獲取章節題目</h3>
+            <div class="http-method">GET /questions/exam/{examId}/chapter/{chapterNum}</div>
+
+            <h3>獲取隨機題目</h3>
+            <div class="http-method">GET /questions/random</div>
+            <p>查詢參數：</p>
+            <ul>
+                <li><code>examId</code> (string, 可選) - 考試 ID</li>
+                <li><code>limit</code> (number, 可選) - 返回題目數量</li>
+            </ul>
+
+            <h3>獲取特定題目</h3>
+            <div class="http-method">GET /questions/{id}</div>
+
+            <h3>更新題目</h3>
+            <div class="http-method">PUT /questions/{id}</div>
+            <pre class="json">
+{
+    "questionNum": "string",
+    "content": "string",
+    "options": ["string"],
+    "type": "multiple-choice | true-false | short-answer | essay",
+    "answer": ["string"]
+}</pre>
+
+            <h3>刪除題目</h3>
+            <div class="http-method">DELETE /questions/{id}</div>
+        </section>
+
+        <section id="auth">
+            <h2>認證與授權</h2>
+
+            <h3>認證要求</h3>
+            <p>大部分 Questions API 端點需要認證和適當的角色權限：</p>
+            <ul>
+                <li>所有端點都需要 JWT 認證</li>
+                <li>標記為 <code>@Roles('admin')</code> 的端點需要管理員權限</li>
+            </ul>
+
+            <h3>錯誤響應</h3>
+            <p>API 使用標準 HTTP 狀態碼：</p>
+            <ul>
+                <li><code>200 OK</code>: 請求成功</li>
+                <li><code>201 Created</code>: 資源創建成功</li>
+                <li><code>400 Bad Request</code>: 無效請求</li>
+                <li><code>401 Unauthorized</code>: 需要認證</li>
+                <li><code>403 Forbidden</code>: 權限不足</li>
+                <li><code>404 Not Found</code>: 資源未找到</li>
+                <li><code>500 Internal Server Error</code>: 伺服器錯誤</li>
+            </ul>
+        </section>
     </main>
-  </body>
+</body>
 </html>

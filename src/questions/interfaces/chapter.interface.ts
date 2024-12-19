@@ -2,6 +2,7 @@ export interface Chapter {
   chapterNum: string;
   chapterName: string;
   questionCount: number;
-  multipleChoiceCount: number;
-  singleChoiceCount: number;
+  questionTypes: {
+    [key: string]: number; // key is QuestionType, value is count
+  };
 }

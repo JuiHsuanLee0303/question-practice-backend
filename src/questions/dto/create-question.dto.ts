@@ -1,36 +1,22 @@
-import { IsString, IsArray, IsBoolean, IsOptional } from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { QuestionType } from '../enums/question-type.enum';
 
 export class CreateQuestionDto {
   @IsString()
-  examId: string;
-
-  @IsString()
-  examName: string;
-
-  @IsString()
-  @IsOptional()
-  chapterNum?: string;
-
-  @IsString()
-  @IsOptional()
-  chapterName?: string;
-
-  @IsString()
-  questionNum: string;
-
-  @IsString()
+  @IsNotEmpty()
   content: string;
 
   @IsArray()
   options: string[];
 
-  @IsBoolean()
-  isMultiple: boolean;
+  @IsEnum(QuestionType)
+  type: QuestionType;
 
   @IsArray()
   answer: string[];
+}
 
+export class CreateQuestionsDto {
   @IsArray()
-  @IsOptional()
-  questions?: CreateQuestionDto[];
+  questions: CreateQuestionDto[];
 }

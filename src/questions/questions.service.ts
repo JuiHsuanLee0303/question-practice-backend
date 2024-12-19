@@ -2,29 +2,29 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { FirebaseService } from '../config/firebase.config';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { Chapter } from './interfaces/chapter.interface';
+import { QuestionType } from './enums/question-type.enum';
 import * as admin from 'firebase-admin';
+import { CreateExamResultDto } from '../exam-results/dto/create-exam-result.dto';
 
 @Injectable()
 export class QuestionsService {
   private readonly questionsRef: admin.database.Reference;
+  private readonly examsRef: admin.database.Reference;
 
   constructor(private readonly firebaseService: FirebaseService) {
     this.questionsRef = this.firebaseService.getDatabase().ref('questions');
+    this.examsRef = this.firebaseService.getDatabase().ref('exams');
   }
 
   async create(createQuestionDto: CreateQuestionDto | CreateQuestionDto[]) {
     try {
       if (Array.isArray(createQuestionDto)) {
-        const questionsToCreate = createQuestionDto[0]?.questions
-          ? createQuestionDto[0].questions
-          : createQuestionDto;
-
         const results = await Promise.all(
-          questionsToCreate.map(async (question) => {
+          createQuestionDto.map(async (question) => {
             const newQuestionRef = this.questionsRef.push();
             await newQuestionRef.set({
               createdAt: admin.database.ServerValue.TIMESTAMP,
-              question: question,
+              ...question,
             });
             return { id: newQuestionRef.key, ...question };
           }),
@@ -34,7 +34,7 @@ export class QuestionsService {
         const newQuestionRef = this.questionsRef.push();
         await newQuestionRef.set({
           createdAt: admin.database.ServerValue.TIMESTAMP,
-          question: createQuestionDto,
+          ...createQuestionDto,
         });
         return { id: newQuestionRef.key, ...createQuestionDto };
       }
@@ -44,12 +44,18 @@ export class QuestionsService {
   }
 
   async findAll() {
-    const snapshot = await this.questionsRef.once('value');
-    const questions = snapshot.val() || {};
+    const [questionsSnapshot, examsSnapshot] = await Promise.all([
+      this.questionsRef.once('value'),
+      this.examsRef.once('value'),
+    ]);
+
+    const questions = questionsSnapshot.val() || {};
+    const exams = examsSnapshot.val() || {};
+
     return Object.entries(questions).map(([id, data]: [string, any]) => ({
       id,
-      ...data.question,
-      createdAt: data.createdAt,
+      ...data,
+      examName: exams[data.examId]?.name || '',
     }));
   }
 
@@ -58,16 +64,14 @@ export class QuestionsService {
     const questions = snapshot.val() || {};
     const exams = new Map();
 
-    Object.values(questions).forEach((data: any) => {
-      const question = data.question;
-      if (!exams.has(question.examId)) {
-        exams.set(question.examId, {
-          examId: question.examId,
-          examName: question.examName,
+    Object.entries(questions).forEach(([, data]: [string, any]) => {
+      if (!exams.has(data.examId)) {
+        exams.set(data.examId, {
+          examId: data.examId,
           questionCount: 1,
         });
       } else {
-        const exam = exams.get(question.examId);
+        const exam = exams.get(data.examId);
         exam.questionCount++;
       }
     });
@@ -80,52 +84,47 @@ export class QuestionsService {
     const questions = snapshot.val() || {};
     const exams = new Map();
 
-    Object.values(questions).forEach((data: any) => {
-      const question = data.question;
-      if (!exams.has(question.examId)) {
-        exams.set(question.examId, {
-          examId: question.examId,
-          examName: question.examName,
+    Object.entries(questions).forEach(([, data]: [string, any]) => {
+      const questionType = data.type;
+      if (!exams.has(data.examId)) {
+        exams.set(data.examId, {
+          examId: data.examId,
           questionCount: 1,
           chapters: new Map(),
-          multipleChoiceCount: question.isMultiple ? 1 : 0,
-          singleChoiceCount: question.isMultiple ? 0 : 1,
+          questionTypes: this.initQuestionTypesCount(),
         });
-        if (question.chapterNum && question.chapterName) {
-          exams.get(question.examId).chapters.set(question.chapterNum, {
-            chapterNum: question.chapterNum,
-            chapterName: question.chapterName,
+        exams.get(data.examId).questionTypes[questionType]++;
+
+        if (data.chapterNum && data.chapterName) {
+          exams.get(data.examId).chapters.set(data.chapterNum, {
+            chapterNum: data.chapterNum,
+            chapterName: data.chapterName,
             questionCount: 1,
-            multipleChoiceCount: question.isMultiple ? 1 : 0,
-            singleChoiceCount: question.isMultiple ? 0 : 1,
+            questionTypes: this.initQuestionTypesCount(),
           });
+          const examRef = exams.get(data.examId);
+          const chapterRef = examRef.chapters.get(data.chapterNum);
+          chapterRef.questionTypes[questionType]++;
         }
       } else {
-        const exam = exams.get(question.examId);
+        const exam = exams.get(data.examId);
         exam.questionCount++;
-        if (question.isMultiple) {
-          exam.multipleChoiceCount++;
-        } else {
-          exam.singleChoiceCount++;
-        }
+        exam.questionTypes[questionType]++;
 
-        if (question.chapterNum && question.chapterName) {
-          if (!exam.chapters.has(question.chapterNum)) {
-            exam.chapters.set(question.chapterNum, {
-              chapterNum: question.chapterNum,
-              chapterName: question.chapterName,
+        if (data.chapterNum && data.chapterName) {
+          if (!exam.chapters.has(data.chapterNum)) {
+            exam.chapters.set(data.chapterNum, {
+              chapterNum: data.chapterNum,
+              chapterName: data.chapterName,
               questionCount: 1,
-              multipleChoiceCount: question.isMultiple ? 1 : 0,
-              singleChoiceCount: question.isMultiple ? 0 : 1,
+              questionTypes: this.initQuestionTypesCount(),
             });
+            const chapterRef = exam.chapters.get(data.chapterNum);
+            chapterRef.questionTypes[questionType]++;
           } else {
-            const chapter = exam.chapters.get(question.chapterNum);
+            const chapter = exam.chapters.get(data.chapterNum);
             chapter.questionCount++;
-            if (question.isMultiple) {
-              chapter.multipleChoiceCount++;
-            } else {
-              chapter.singleChoiceCount++;
-            }
+            chapter.questionTypes[questionType]++;
           }
         }
       }
@@ -147,79 +146,122 @@ export class QuestionsService {
 
   async getExamChapters(examId: string) {
     const snapshot = await this.questionsRef
-      .orderByChild('question/examId')
+      .orderByChild('examId')
       .equalTo(examId)
       .once('value');
     const questions = snapshot.val() || {};
-    console.log('Getting chapters for exam:', examId);
 
     const chapters = new Map<string, Chapter>();
     const DEFAULT_CHAPTER = 'other';
 
-    Object.values(questions).forEach((data: any) => {
-      console.log('Processing question:', data);
-      const question = data.question;
+    Object.entries(questions).forEach(([, data]: [string, any]) => {
       let targetChapterNum = DEFAULT_CHAPTER;
       let targetChapterName = '其他';
 
-      if (question.chapterNum) {
-        targetChapterNum = question.chapterNum;
-        targetChapterName =
-          question.chapterName || `第${question.chapterNum}章`;
+      if (data.chapterNum) {
+        targetChapterNum = data.chapterNum;
+        targetChapterName = data.chapterName || `第${data.chapterNum}章`;
       }
 
       if (!chapters.has(targetChapterNum)) {
-        console.log('Adding new chapter:', targetChapterNum);
         chapters.set(targetChapterNum, {
           chapterNum: targetChapterNum,
           chapterName: targetChapterName,
           questionCount: 1,
-          multipleChoiceCount: question.isMultiple ? 1 : 0,
-          singleChoiceCount: question.isMultiple ? 0 : 1,
+          questionTypes: this.initQuestionTypesCount(),
         });
+        chapters.get(targetChapterNum).questionTypes[data.type]++;
       } else {
         const chapter = chapters.get(targetChapterNum);
         chapter.questionCount++;
-        if (question.isMultiple) {
-          chapter.multipleChoiceCount++;
-        } else {
-          chapter.singleChoiceCount++;
-        }
+        chapter.questionTypes[data.type]++;
       }
     });
 
-    const result = Array.from(chapters.values()).sort((a, b) => {
-      if (a.chapterNum === 'other') return 1;
-      if (b.chapterNum === 'other') return -1;
+    return Array.from(chapters.values()).sort((a, b) => {
+      if (a.chapterNum === DEFAULT_CHAPTER) return 1;
+      if (b.chapterNum === DEFAULT_CHAPTER) return -1;
       return a.chapterNum.localeCompare(b.chapterNum, undefined, {
         numeric: true,
       });
     });
+  }
 
-    console.log('Chapters result:', JSON.stringify(result, null, 2));
-    return result;
+  private initQuestionTypesCount(): { [key: string]: number } {
+    return {
+      [QuestionType.SINGLE_CHOICE]: 0,
+      [QuestionType.MULTIPLE_CHOICE]: 0,
+      [QuestionType.TRUE_FALSE]: 0,
+      [QuestionType.SHORT_ANSWER]: 0,
+      [QuestionType.ESSAY]: 0,
+    };
   }
 
   async findOne(id: string) {
-    const snapshot = await this.questionsRef.child(id).once('value');
-    if (!snapshot.exists()) {
-      throw new NotFoundException('Question not found');
+    // 獲取所有考試
+    const examsSnapshot = await this.examsRef.once('value');
+    const exams = examsSnapshot.val() || {};
+
+    // 遍歷所有考試尋找指定的題目
+    for (const [, exam] of Object.entries(exams)) {
+      const examData = exam as {
+        questions?: {
+          [key: string]: any;
+        };
+        id: string;
+      };
+      if (examData.questions && typeof examData.questions === 'object') {
+        // 檢查是否在這個考試的題目中找到指定ID
+        if (id in examData.questions) {
+          const question = examData.questions[id];
+          return {
+            id,
+            ...question,
+            examId: examData.id,
+          };
+        }
+      }
     }
-    const data = snapshot.val();
-    return {
-      id,
-      ...data.question,
-      createdAt: data.createdAt,
-    };
+
+    throw new NotFoundException('Question not found');
   }
 
   async update(id: string, updateData: Partial<CreateQuestionDto>) {
     try {
-      const currentData = await this.findOne(id);
-      await this.questionsRef.child(id).update({
-        question: { ...currentData, ...updateData },
+      // 找到題目所在的考試
+      const examsSnapshot = await this.examsRef.once('value');
+      const exams = examsSnapshot.val() || {};
+      let examId: string | null = null;
+
+      // 遍歷所有考試尋找指定的題目
+      for (const [examKey, exam] of Object.entries(exams)) {
+        const examData = exam as {
+          questions?: {
+            [key: string]: any;
+          };
+          id: string;
+        };
+        if (examData.questions && typeof examData.questions === 'object') {
+          if (id in examData.questions) {
+            examId = examKey;
+            break;
+          }
+        }
+      }
+
+      if (!examId) {
+        throw new NotFoundException('Question not found');
+      }
+
+      const updatedData = {
+        ...updateData,
         updatedAt: admin.database.ServerValue.TIMESTAMP,
-      });
+      };
+
+      // 更新考試中的題目
+      await this.examsRef
+        .child(`${examId}/questions/${id}`)
+        .update(updatedData);
       return this.findOne(id);
     } catch (error) {
       throw error;
@@ -228,7 +270,33 @@ export class QuestionsService {
 
   async remove(id: string) {
     try {
-      await this.questionsRef.child(id).remove();
+      // 找到題目所在的考試
+      const examsSnapshot = await this.examsRef.once('value');
+      const exams = examsSnapshot.val() || {};
+      let examId: string | null = null;
+
+      // 遍歷所有考試尋找指定的題目
+      for (const [examKey, exam] of Object.entries(exams)) {
+        const examData = exam as {
+          questions?: {
+            [key: string]: any;
+          };
+          id: string;
+        };
+        if (examData.questions && typeof examData.questions === 'object') {
+          if (id in examData.questions) {
+            examId = examKey;
+            break;
+          }
+        }
+      }
+
+      if (!examId) {
+        throw new NotFoundException('Question not found');
+      }
+
+      // 從考試中刪除題目
+      await this.examsRef.child(`${examId}/questions/${id}`).remove();
       return { message: 'Question deleted successfully' };
     } catch (error) {
       throw error;
@@ -237,57 +305,175 @@ export class QuestionsService {
 
   async findByExam(examId: string) {
     const snapshot = await this.questionsRef
-      .orderByChild('question/examId')
+      .orderByChild('examId')
       .equalTo(examId)
       .once('value');
     const questions = snapshot.val() || {};
     return Object.entries(questions).map(([id, data]: [string, any]) => ({
       id,
-      ...data.question,
-      createdAt: data.createdAt,
+      ...data,
     }));
   }
 
   async findByChapter(examId: string, chapterNum: string) {
     const snapshot = await this.questionsRef
-      .orderByChild('question/examId')
+      .orderByChild('examId')
       .equalTo(examId)
       .once('value');
     const questions = snapshot.val() || {};
     return Object.entries(questions)
-      .filter(
-        ([, data]: [string, any]) => data.question.chapterNum === chapterNum,
-      )
+      .filter(([, data]: [string, any]) => data.chapterNum === chapterNum)
       .map(([id, data]: [string, any]) => ({
         id,
-        ...data.question,
-        createdAt: data.createdAt,
+        ...data,
       }));
   }
 
-  async findRandom(examId?: string, limit: number = 1) {
-    let snapshot: admin.database.DataSnapshot;
-    if (examId) {
-      snapshot = await this.questionsRef
-        .orderByChild('question/examId')
-        .equalTo(examId)
-        .once('value');
-    } else {
-      snapshot = await this.questionsRef.once('value');
+  async findRandom(examIds?: string[], count: number = 1) {
+    // 如果沒有提供考試ID，拋出錯誤
+    if (!examIds || examIds.length === 0) {
+      throw new NotFoundException('ExamIds are required');
     }
-    const questions = snapshot.val();
-    if (!questions) {
+
+    // 獲取所有指定的考試
+    const questionsFromAllExams = [];
+    for (const examId of examIds) {
+      const examSnapshot = await this.examsRef.child(examId).once('value');
+      if (!examSnapshot.exists()) {
+        continue; // 如果考試不存在就跳過
+      }
+
+      const examData = examSnapshot.val();
+      if (examData.questions) {
+        // 將每個題目加入陣列，並加上examId
+        Object.entries(examData.questions).forEach(
+          ([questionId, questionData]: [string, any]) => {
+            questionsFromAllExams.push({
+              id: questionId,
+              examId,
+              ...questionData,
+            });
+          },
+        );
+      }
+    }
+
+    // 如果沒有找到任何題目
+    if (questionsFromAllExams.length === 0) {
       return [];
     }
 
-    const questionArray = Object.entries(questions).map(
-      ([id, data]: [string, any]) => ({
-        id,
-        ...data.question,
-        createdAt: data.createdAt,
-      }),
+    // 隨機排序並取得指定數量的題目
+    const shuffled = questionsFromAllExams.sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, count);
+
+    // 移除答案後回傳
+    return selected.map(
+      ({ answer, ...questionWithoutAnswer }) => questionWithoutAnswer,
     );
-    const shuffled = questionArray.sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, limit);
+  }
+
+  async createQuestionForExam(
+    examId: string,
+    createQuestionDto: CreateQuestionDto,
+  ) {
+    // 確認考試是否存在
+    const examSnapshot = await this.examsRef.child(examId).once('value');
+    if (!examSnapshot.exists()) {
+      throw new NotFoundException(`Exam with ID ${examId} not found`);
+    }
+
+    // 準備題目資料
+    const questionData = {
+      content: createQuestionDto.content,
+      type: createQuestionDto.type,
+      options: createQuestionDto.options,
+      answer: createQuestionDto.answer,
+      createdAt: admin.database.ServerValue.TIMESTAMP,
+    };
+
+    // 在考試中新增題目
+    const newQuestionRef = this.examsRef.child(`${examId}/questions`).push();
+    await newQuestionRef.set(questionData);
+
+    return {
+      id: newQuestionRef.key,
+      ...questionData,
+      examId,
+    };
+  }
+
+  async processExamResult(examResult: CreateExamResultDto) {
+    const results = [];
+    let correctCount = 0;
+
+    // 處理每個答案
+    for (const { questionId, answer } of examResult.answers) {
+      // 找到題目
+      let question;
+      let examId;
+
+      // 在所有考試中尋找題目
+      const examsSnapshot = await this.examsRef.once('value');
+      const exams = examsSnapshot.val() || {};
+
+      examLoop: for (const [currentExamId, exam] of Object.entries(exams)) {
+        const examData = exam as {
+          questions?: { [key: string]: any };
+          id: string;
+        };
+        if (examData.questions && typeof examData.questions === 'object') {
+          if (questionId in examData.questions) {
+            question = examData.questions[questionId];
+            examId = currentExamId;
+            break examLoop;
+          }
+        }
+      }
+
+      if (!question) {
+        throw new NotFoundException(`Question with ID ${questionId} not found`);
+      }
+
+      // 確保答案是陣列
+      const userAnswer = Array.isArray(answer) ? answer : [];
+      const correctAnswer = Array.isArray(question.answer)
+        ? question.answer
+        : [];
+
+      // 檢查答案是否正確
+      const isCorrect =
+        JSON.stringify([...userAnswer].sort()) ===
+        JSON.stringify([...correctAnswer].sort());
+
+      if (isCorrect) {
+        correctCount++;
+      }
+
+      // 將結果加入陣列
+      results.push({
+        id: questionId,
+        examId,
+        content: question.content,
+        type: question.type,
+        options: question.options,
+        correctAnswer: question.answer,
+        userAnswer: answer,
+        isCorrect,
+      });
+    }
+
+    // 計算正確率
+    const accuracy = results.length > 0 ? correctCount / results.length : 0;
+
+    return {
+      questions: results,
+      summary: {
+        totalQuestions: results.length,
+        correctCount,
+        accuracy,
+        timeSpent: examResult.timeSpent,
+      },
+    };
   }
 }

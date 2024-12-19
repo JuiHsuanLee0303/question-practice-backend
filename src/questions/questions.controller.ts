@@ -3,7 +3,7 @@ import {
   Get,
   Post,
   Body,
-  Patch,
+  Put,
   Param,
   Delete,
   Query,
@@ -14,6 +14,7 @@ import { CreateQuestionDto } from './dto/create-question.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CreateExamResultDto } from '../exam-results/dto/create-exam-result.dto';
 
 @Controller('questions')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -52,8 +53,13 @@ export class QuestionsController {
   }
 
   @Get('random')
-  findRandom(@Query('examId') examId?: string, @Query('limit') limit?: number) {
-    return this.questionsService.findRandom(examId, limit);
+  async getRandomQuestions(
+    @Query('examIds') examIds: string,
+    @Query('count') count: string,
+  ) {
+    const examIdsArray = examIds.split(',');
+    const questionCount = parseInt(count, 10) || 1;
+    return this.questionsService.findRandom(examIdsArray, questionCount);
   }
 
   @Get('exam/:examId')
@@ -74,11 +80,11 @@ export class QuestionsController {
     return this.questionsService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @Roles('admin')
   update(
     @Param('id') id: string,
-    @Body() updateQuestionDto: Partial<CreateQuestionDto>,
+    @Body() updateQuestionDto: CreateQuestionDto,
   ) {
     return this.questionsService.update(id, updateQuestionDto);
   }
@@ -87,5 +93,10 @@ export class QuestionsController {
   @Roles('admin')
   remove(@Param('id') id: string) {
     return this.questionsService.remove(id);
+  }
+
+  @Post('exam-results')
+  async submitExamResult(@Body() examResult: CreateExamResultDto) {
+    return this.questionsService.processExamResult(examResult);
   }
 }

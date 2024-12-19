@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { QuestionsService } from './questions.service';
 import { QuestionsController } from './questions.controller';
-import { FirebaseModule } from 'src/config/firebase.module';
+import { FirebaseService } from '../config/firebase.config';
 
 @Module({
-  imports: [FirebaseModule],
   controllers: [QuestionsController],
-  providers: [QuestionsService],
+  providers: [QuestionsService, FirebaseService],
+  exports: [QuestionsService],
 })
 export class QuestionsModule {}

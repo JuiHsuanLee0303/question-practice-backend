@@ -231,7 +231,7 @@ GET /questions/exams/:examId
 
 - `examId`: 考試 ID
 
-### 獲取隨機問題
+### 獲取隨機題目
 
 ```http
 GET /questions/random
@@ -240,9 +240,33 @@ GET /questions/random
 **需要認證：** 是
 
 **查詢參數**
+- `examIds`: 考試ID列表，以逗號分隔 (例如: exam1,exam2,exam3)
+- `count`: 要獲取的題目數量 (預設: 1)
 
-- `examId` (可選): 考試 ID
-- `limit` (可選): 返回問題數量
+**回應範例**
+```json
+[
+  {
+    "id": "question-id-1",
+    "examId": "exam-id-1",
+    "content": "題目內容",
+    "type": "SINGLE_CHOICE",
+    "options": ["選項A", "選項B", "選項C", "選項D"]
+  },
+  {
+    "id": "question-id-2",
+    "examId": "exam-id-2",
+    "content": "題目內容",
+    "type": "MULTIPLE_CHOICE",
+    "options": ["選項A", "選項B", "選項C", "選項D"]
+  }
+]
+```
+
+**說明**
+- 從指定的考試中隨機選取題目
+- 回傳的題目不包含答案
+- 如果請求的題目數量超過可用題目總數，則返回所有可用題目
 
 ### 獲取特定考試的問題
 
@@ -319,6 +343,107 @@ DELETE /questions/:id
 **參數**
 
 - `id`: 問題 ID
+
+### 為特定考試新增題目
+
+```http
+POST /questions/exam/:examId
+```
+
+**需要認證：** 是
+
+**參數**
+
+- `examId`: 考試 ID
+
+**請求體 (Request Body)**
+
+```json
+{
+  "title": "新題目標題",
+  "description": "新題目描述",
+  "options": ["新選項A", "新選項B", "新選項C", "新選項D"],
+  "answer": "新正確答案"
+}
+```
+
+### 獲取特定考試的所有題目
+
+```http
+GET /exams/:examId/questions
+```
+
+**需要認證：** 是
+
+**參數**
+- `examId`: 考試 ID
+
+**回應範例**
+```json
+[
+  {
+    "id": "question-id-1",
+    "question": "題目內容",
+    "type": "SINGLE_CHOICE",
+    "options": ["選項A", "選項B", "選項C", "選項D"],
+    "correctAnswer": "正確答案",
+    "score": 10,
+    "chapterNum": "1",
+    "chapterName": "第一章",
+    "examId": "exam-id"
+  }
+]
+```
+
+### 提交考試結果
+
+```http
+POST /questions/exam-results
+```
+
+**需要認證：** 是
+
+**請求體 (Request Body)**
+```json
+{
+  "answers": [
+    {
+      "questionId": "題目ID",
+      "answer": ["使用者的答案"]
+    }
+  ],
+  "timeSpent": 300
+}
+```
+
+**回應範例**
+```json
+{
+  "questions": [
+    {
+      "id": "題目ID",
+      "examId": "考試ID",
+      "content": "題目內容",
+      "type": "題目類型",
+      "options": ["選項A", "選項B", "選項C", "選項D"],
+      "correctAnswer": ["正確答案"],
+      "userAnswer": ["使用者答案"],
+      "isCorrect": true
+    }
+  ],
+  "summary": {
+    "totalQuestions": 1,
+    "correctCount": 1,
+    "accuracy": 1.0,
+    "timeSpent": 300
+  }
+}
+```
+
+**說明**
+- 系統會檢查每個題目的答案是否正確
+- 多選題的答案順序不重要
+- 回傳的結果包含每題的詳細資訊和整體統計
 
 ## 記錄管理 (Records)
 
